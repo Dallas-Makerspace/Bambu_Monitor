@@ -1,9 +1,40 @@
-from datetime import datetime
 import time
 import controller as cntrl
 import parser as pr
 import job_store as js
 from gspread_updater import SheetClient
+
+def main():
+    # Initialize
+    store = js.JobStore()
+    sheet_client = SheetClient()
+    store.add_job(get_init_job(sheet_client))  
+
+    while True:
+        try:
+            # Check for new jobs since last run
+            print("Checking for new jobs...")
+            cntrl.go_to_printing_history()
+            scroll_to_job(store.get_latest_job())
+            check_for_later_jobs(store, sheet_client)
+
+            # Update in-progress jobs in memory
+            print("Updating in-progress jobs...")
+            update_in_progress_jobs(store, sheet_client)
+
+            # Purge very old jobs from in-memory store
+            if len(store) > 100:
+                store = store[50:]
+
+            # Wait 5 minutes before next check
+            print("Waiting 5 minutes before next check")
+            time.sleep(300)
+
+        except Exception as e:
+            print(f"Error occurred: {e}. Restarting loop...")
+            cntrl.go_to_printing_history()
+            continue
+
 
 def update_in_progress_jobs(store, sheet_client):
     """
@@ -128,14 +159,15 @@ def job_from_screen_entry(s):
     )
 
 
-def get_init_job():
+def get_init_job(sheet_client):
     """
     Return the job to resume on startup: earliest in-progress, most recent in sheets, or first GUI entry.
     """
     
+    # Earliest row that still needs updating
     latest_job = sheet_client.get_oldest_in_progress_job()
 
-    # Fallback to most recent job recorded jobs are in progress
+    # If no rows in progress, resume from latest row in sheet
     if latest_job is None:
         latest_job = sheet_client.get_most_recent_job()
 
@@ -162,32 +194,4 @@ def get_first_gui_entry():
 
 
 if __name__ == "__main__":
-    store = js.JobStore()
-    sheet_client = SheetClient()
-    
-    store.add_job(get_init_job())  # Initialize with the earliest/resumable job
-
-    while True:
-        try:
-            # Check for new jobs since last run
-            print("Checking for new jobs...")
-            cntrl.go_to_printing_history()
-            scroll_to_job(store.get_latest_job())
-            check_for_later_jobs(store, sheet_client)
-
-            # Update in-progress jobs in memory
-            print("Updating in-progress jobs...")
-            update_in_progress_jobs(store, sheet_client)
-
-            # Purge very old jobs from in-memory store
-            if len(store) > 100:
-                store = store[50:]
-
-            # Wait 5 minutes before next check
-            print("Waiting 5 minutes before next check")
-            time.sleep(300)
-
-        except Exception as e:
-            print(f"Error occurred: {e}. Restarting loop...")
-            cntrl.go_to_printing_history()
-            continue
+    main()

@@ -15,6 +15,7 @@ def go_to_device_page(machine):
     tap_by_desc("Devices")
     tap_by_desc("brand_logo")
     tap_by_desc(machine)
+    time.sleep(1)
 
 
 def tap_by_desc(desc):

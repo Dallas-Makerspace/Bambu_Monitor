@@ -6,7 +6,7 @@ from job_store import PrintJob
 
 CREDENTIALS_PATH = 'printer-monitoring-474822-bdfc6f0da109.json'
 SPREADSHEET_NAME = "print-records"
-WORKSHEET_NAME = "Sheet2"
+WORKSHEET_NAME = "Raw Data"
 
 class SheetClient:
     def __init__(self):
