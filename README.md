@@ -22,7 +22,7 @@ sudo apt upgrade -y
 ```
 ### 2) Enable pressure stall information
 ```
-sudo sh -c 'echo "psi=1" >> /boot/firmware/cmdline.txt'
+sudo sed -i '/psi=1/! s/$/ psi=1/' /boot/firmware/cmdline.txt
 ```
 ### 3) Reboot
 ```
