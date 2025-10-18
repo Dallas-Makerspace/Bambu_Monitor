@@ -10,9 +10,8 @@
   - gspread_updater.py - utility for interacting with google sheets
   - Supervisor.py - Performs startup sequence and takes care of restarts
   - waydroid-supervisor.service - Daemon service to initiate launch on startup
-  - /BambuHandy - contains the APKs 
-  - /Secret.zip - client secret for google service account (encrypted)
-  - README.md - see README.md for further explanation
+  - /BambuHandy - contains the android app
+  - /secret.zip - client secret for google service account (encrypted)
 
 ## Raspberry Pi Setup instructions
 
@@ -36,7 +35,9 @@ unzip secret.zip
 ### 5) Install dependencies
 ```
 sudo apt install curl lsb-release python3 python3-pip python3-venv -y
-pip install -r requirements.txt --break-system-packages
+python3 -m venv handy_env
+source handy_env/bin/activate
+pip install -r requirements.txt
 ```
 ### 6) Install Waydroid
 ```
@@ -62,13 +63,22 @@ adb install-multiple ./BambuHandy/*.apk
 ```
 ### 9) manual step - launch bambu handy and login
 
-### 10) Create and start daemon 
+### 10) Create and start user daemon 
   - Note: replace USER in supervisor.service with username 
   ```
-sudo cp -v waydroid-supervisor.service /etc/systemd/system/
-chmod 644 /etc/systemd/system/waydroid-supervisor.service
-systemctl daemon-reload
-systemctl enable waydroid-supervisor
-systemctl restart waydroid-supervisor
-```
+# Copy service file to user systemd directory
+mkdir -p ~/.config/systemd/user
+cp -v waydroid-supervisor.service ~/.config/systemd/user/
 
+# Set permissions
+chmod 644 ~/.config/systemd/user/waydroid-supervisor.service
+
+# Reload systemd user daemon and enable service
+systemctl --user daemon-reload
+systemctl --user enable waydroid-supervisor
+systemctl --user restart waydroid-supervisor
+
+# (Optional) Check status and logs
+systemctl --user status waydroid-supervisor
+journalctl --user -u waydroid-supervisor -f
+```

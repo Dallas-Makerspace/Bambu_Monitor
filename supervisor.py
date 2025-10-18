@@ -21,7 +21,7 @@ def main():
             print("Interrupted — exiting.")
             break
         except Exception as e:
-            print(f"Error occurred: {e}")
+            print(f"Fatal error occurred: {e}")
 
         print("Restarting in 5 seconds...")
         os.system("pkill -f waydroid >/dev/null 2>&1")
@@ -30,7 +30,7 @@ def main():
 
 def startup():
     process = subprocess.Popen(
-        ["waydroid", "show-full-ui"],
+        ["waydroid", "session", "start"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
@@ -57,7 +57,11 @@ def connect_android_debugger():
     print("Connecting")
     subprocess.run(["waydroid", "app", "launch", "bbl.intl.bambulab.com"])
     subprocess.run(["adb", "connect", ANDROID_IP])
-    subprocess.run(["python3", "main.py"])
+    subprocess.run(
+        ["handy_env/bin/python", "main.py"],
+        env=os.environ.copy(),
+        check=True
+    )
     print("main.py exited — restarting soon")
 
 if __name__ == "__main__":

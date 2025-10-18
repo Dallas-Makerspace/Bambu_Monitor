@@ -49,6 +49,7 @@ def update_in_progress_jobs(store, sheet_client):
             check_machine_errors(job)
         job.status = _job.status
         sheet_client.update_job(job)
+    cntrl.go_to_printing_history()
 
 
 def check_machine_errors(job):
