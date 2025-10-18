@@ -9,7 +9,7 @@
   - parser.py - utility for extracting screen information
   - gspread_updater.py - utility for interacting with google sheets
   - Supervisor.py - Performs startup sequence and takes care of restarts
-  - waydroid-supervisor.service - Daemon service to initiate launch on startup
+  - waydroid-daemon.service - Daemon service to initiate launch on startup
   - /BambuHandy - contains the android app
   - /secret.zip - client secret for google service account (encrypted)
 
@@ -68,17 +68,17 @@ adb install-multiple ./BambuHandy/*.apk
   ```
 # Copy service file to user systemd directory
 mkdir -p ~/.config/systemd/user
-cp -v waydroid-supervisor.service ~/.config/systemd/user/
+cp -v waydroid-daemon.service ~/.config/systemd/user/
 
 # Set permissions
-chmod 644 ~/.config/systemd/user/waydroid-supervisor.service
+chmod 644 ~/.config/systemd/user/waydroid-daemon.service
 
 # Reload systemd user daemon and enable service
 systemctl --user daemon-reload
-systemctl --user enable waydroid-supervisor
-systemctl --user restart waydroid-supervisor
+systemctl --user enable waydroid-daemon
+systemctl --user restart waydroid-daemon
 
 # (Optional) Check status and logs
-systemctl --user status waydroid-supervisor
-journalctl --user -u waydroid-supervisor -f
+systemctl --user status waydroid-daemon
+journalctl --user -u waydroid-daemon -f
 ```

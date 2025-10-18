@@ -1,5 +1,5 @@
 [Unit]
-Description=Waydroid Supervisor
+Description=Waydroid Daemon
 After=network.target
 
 [Service]

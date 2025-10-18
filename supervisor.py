@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-This script is called by .bashrc to initialize & supervise the Waydroid emulator, Android debugger, Bambu Handy app, and Python monitoring service.
+This script is called by waydroid-daemon to initialize & supervise the Waydroid emulator, Android debugger, Bambu Handy app, and Python monitoring service.
 """
 
 import subprocess
