@@ -4,13 +4,12 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/dougl/waydroid-supervisor/supervisor.py
+WorkingDirectory=/home/ USER /dms_handy_monitor
+ExecStart=/usr/bin/python3 /home/ USER /dms_handy_monitor/supervisor.py
 Restart=always
 RestartSec=5
-User=dougl
-WorkingDirectory=/home/dougl/waydroid-supervisor
 StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
