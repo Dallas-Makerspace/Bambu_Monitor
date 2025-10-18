@@ -8,7 +8,7 @@
   - controller.py - utility for screen control 
   - parser.py - utility for extracting screen information
   - gspread_updater.py - utility for interacting with google sheets
-  - Supervisor.py - Performs startup sequence and takes care of restarts
+  - supervisor.py - Performs startup sequence and takes care of restarts
   - waydroid-daemon.service - Daemon service to initiate launch on startup
   - /BambuHandy - contains the android app
   - /secret.zip - client secret for google service account (encrypted)
