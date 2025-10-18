@@ -20,9 +20,12 @@
 sudo apt update
 sudo apt upgrade -y
 ```
-### 2) Enable pressure stall information
+### 2) Required OS Configuration
 ```
+# Pressure stall information
 sudo sed -i '/psi=1/! s/$/ psi=1/' /boot/firmware/cmdline.txt
+# Page size of 4096
+sudo grep -qxF 'kernel=kernel8.img' /boot/firmware/config.txt || sudo sed -i '1ikernel=kernel8.img' /boot/firmware/config.txt
 ```
 ### 3) Reboot
 ```
