@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/ USER /dms_handy_monitor
-ExecStart=/usr/bin/python3 /home/ USER /dms_handy_monitor/supervisor.py
+WorkingDirectory=/home/ USER /Bambu_Monitor
+ExecStart=/usr/bin/python3 /home/ USER /Bambu_Monitor/supervisor.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
