@@ -37,7 +37,7 @@ unzip secret.zip
 ```
 ### 5) Install dependencies
 ```
-sudo apt install curl lsb-release python3 python3-pip python3-venv -y
+sudo apt install adb curl lsb-release python3 python3-pip python3-venv -y
 python3 -m venv handy_env
 source handy_env/bin/activate
 pip install -r requirements.txt
@@ -67,7 +67,7 @@ adb install-multiple ./BambuHandy/*.apk
 ### 9) manual step - launch bambu handy and login
 
 ### 10) Create and start user daemon 
-  - Note: replace USER in supervisor.service with username 
+  - Note: replace USER in waydroid-daemon.service with username 
   ```
 # Copy service file to user systemd directory
 mkdir -p ~/.config/systemd/user
