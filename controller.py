@@ -22,6 +22,8 @@ def tap_by_desc(desc):
     node = find_by_desc(desc)
     if node:
         tap_by_bounds(node)
+    else:
+        return False
 
 
 def find_by_desc(desc):
@@ -32,6 +34,8 @@ def find_by_desc(desc):
     os.system("adb pull /sdcard/view.xml >/dev/null")
     tree = etree.parse("view.xml")
     node = tree.xpath(f"//node[@content-desc='{desc}']")
+    if(node is None):
+        node = tree.xpath(f"//node[@text='{desc}']")
     if not node:
         print(f"Element '{desc}' not found")
         return False

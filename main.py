@@ -12,6 +12,10 @@ def main():
 
     while True:
         try:
+            # wait for app to become responsive
+            while cntrl.tap_by_desc("Wait"):
+                time.sleep(5)
+
             # Check for new jobs since last run
             print("Checking for new jobs...")
             cntrl.go_to_printing_history()
@@ -156,7 +160,7 @@ def job_from_screen_entry(s):
         date = pr.parse_job_date(s[5]),
         weight=0.0,
         materials=[],
-        errors=[]
+        errors=""
     )
 
 

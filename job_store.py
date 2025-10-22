@@ -12,7 +12,7 @@ class PrintJob:
     machine: str
     weight: float
     materials: List[str]
-    errors: List[str]
+    errors: str
 
     def to_dict(self):
         d = asdict(self)

@@ -68,6 +68,7 @@ class SheetClient:
         Maps PrintJob object to literals for data entry
         """
         errors = row[7] if row and len(row) > 7 else ""
+        errors += (" " + job.errors) if job.errors not in errors else ""
         values = [
             job.name,
             job.status,
@@ -76,7 +77,7 @@ class SheetClient:
             job.machine,
             job.weight,
             ", ".join(job.materials),
-            ", ".join(job.errors + [errors]) if errors not in job.errors else ", ".join(job.errors)
+            errors
         ]
         return values
 
@@ -133,5 +134,5 @@ class SheetClient:
             machine=row[4],
             weight=float(row[5]) if row[5] else 0.0,
             materials=[m.strip() for m in row[6].split(",")] if row[6] else [],
-            errors=[e.strip() for e in row[7].split(",")] if len(row) > 7 and row[7] else []
+            errors= row[7] if len(row) > 7 else ""
         )
