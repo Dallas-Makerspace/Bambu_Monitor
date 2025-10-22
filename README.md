@@ -8,7 +8,7 @@
   - controller.py - utility for screen control 
   - parser.py - utility for extracting screen information
   - gspread_updater.py - utility for interacting with google sheets
-  - Supervisor.py - Performs startup sequence and takes care of restarts
+  - supervisor.py - Performs startup sequence and takes care of restarts
   - waydroid-daemon.service - Daemon service to initiate launch on startup
   - /BambuHandy - contains the android app
   - /secret.zip - client secret for google service account (encrypted)
@@ -20,9 +20,12 @@
 sudo apt update
 sudo apt upgrade -y
 ```
-### 2) Enable pressure stall information
+### 2) Required OS Configuration
 ```
-sudo sh -c 'echo "psi=1" >> /boot/firmware/cmdline.txt'
+# Pressure stall information
+sudo sed -i '/psi=1/! s/$/ psi=1/' /boot/firmware/cmdline.txt
+# Page size of 4096
+sudo grep -qxF 'kernel=kernel8.img' /boot/firmware/config.txt || sudo sed -i '1ikernel=kernel8.img' /boot/firmware/config.txt
 ```
 ### 3) Reboot
 ```
@@ -34,7 +37,7 @@ unzip secret.zip
 ```
 ### 5) Install dependencies
 ```
-sudo apt install curl lsb-release python3 python3-pip python3-venv -y
+sudo apt install adb curl lsb-release python3 python3-pip python3-venv -y
 python3 -m venv handy_env
 source handy_env/bin/activate
 pip install -r requirements.txt
@@ -64,7 +67,7 @@ adb install-multiple ./BambuHandy/*.apk
 ### 9) manual step - launch bambu handy and login
 
 ### 10) Create and start user daemon 
-  - Note: replace USER in supervisor.service with username 
+  - Note: replace USER in waydroid-daemon.service with username 
   ```
 # Copy service file to user systemd directory
 mkdir -p ~/.config/systemd/user
