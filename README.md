@@ -56,12 +56,11 @@ waydroid show-full-ui
 > 
 > ensure usb debugging is enabled (should be default)
 > 
-> take note of ip address in system settings for next step
+> ensure android timezone matches system time
 ### 8) Install Bambu Handy
 ```
-ANDROID_IP = PUT_IP_HERE
 unzip BambuHandy/'*.zip' -d BambuHandy
-adb connect $ANDROID_IP
+adb connect 192.168.240.112
 adb install-multiple ./BambuHandy/*.apk
 ```
 ### 9) manual step - launch bambu handy and login
