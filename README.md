@@ -47,7 +47,7 @@ pip install -r requirements.txt
 sudo curl -Sf https://repo.waydro.id/waydroid.gpg --output /usr/share/keyrings/waydroid.gpg
 echo "deb [signed-by=/usr/share/keyrings/waydroid.gpg] https://repo.waydro.id/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/waydroid.list
 sudo apt update
-sudo apt install waydroid
+sudo apt install waydroid -y
 sudo waydroid init
 waydroid show-full-ui
 ```
