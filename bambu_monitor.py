@@ -1,3 +1,6 @@
+import datetime
+import os
+import subprocess
 import time
 import controller as cntrl
 import parser as pr
@@ -13,9 +16,14 @@ def main():
     while True:
         try:
             # wait for app to become responsive
+            wait = 0
             while cntrl.tap_by_desc("Wait"):
                 time.sleep(5)
+                wait += 1
+                if wait > 10:
+                    subprocess.run(["sudo", "reboot"])
 
+            os.system("adb pull /sdcard/view.xml test.xml")
             # Check for new jobs since last run
             print("Checking for new jobs...")
             cntrl.go_to_printing_history()
@@ -36,6 +44,8 @@ def main():
 
         except Exception as e:
             print(f"Error occurred: {e}. Restarting loop...")
+            ts = datetime.datetime.now().strftime("[%Y-%m-%d_%H:%M:%S]")
+            os.system(f"adb pull /sdcard/view.xml err_{ts}.xml>/dev/null")
             cntrl.go_to_printing_history()
             continue
 
@@ -67,7 +77,7 @@ def check_machine_errors(job):
         # Pull the second element of the parsed screen as the error content
         content = list(pr.parse_screen(long_clickable_only=False).keys())
         if content[1] not in job.errors:
-            job.errors.append(content[1])
+            job.errors += content[1]
 
 
 def scroll_to_job(job, prev_screen=None):
