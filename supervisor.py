@@ -10,6 +10,8 @@ import subprocess
 import threading
 import time
 import os
+from datetime import datetime, timedelta, time as dtime
+from zoneinfo import ZoneInfo
 from google import pubsub_v1
 
 ANDROID_IP = "192.168.240.112"
@@ -21,6 +23,7 @@ UI_URL = "http://127.0.0.1:8080"
 def main():
     while True:
         try:
+            schedule_daily_restart()
             startup()
         except KeyboardInterrupt:
             print("Interrupted — shutting down.")
@@ -148,6 +151,26 @@ def cleanup():
     os.system("pkill -f adb >/dev/null 2>&1")
     os.system(f"pkill -f {MFA_UI} >/dev/null 2>&1")
     os.system(f"pkill -f {MONITORING_SERVICE} >/dev/null 2>&1")
+
+def schedule_daily_restart():
+    """Run `sudo restart` nightly at local midnight."""
+    tz = ZoneInfo("America/Chicago") if ZoneInfo else None
+
+    def loop():
+        while True:
+            sleep_s = _seconds_until_next_midnight(tz)
+            print(f"[Supervisor] Next scheduled restart in ~{sleep_s} seconds (midnight local).")
+            time.sleep(sleep_s)
+            os.system("sudo restart")
+
+    threading.Thread(target=loop, daemon=True).start()
+
+def _seconds_until_next_midnight(tzinfo=None) -> int:
+    now = datetime.now(tzinfo) if tzinfo else datetime.now()
+    tomorrow = (now + timedelta(days=1)).date()
+    next_midnight = datetime.combine(tomorrow, dtime(0, 0, 0), tzinfo)
+    return max(1, int((next_midnight - now).total_seconds()))
+
 
 if __name__ == "__main__":
     main()

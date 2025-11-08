@@ -1,18 +1,16 @@
 from typing import List, Optional
 import gspread
 from datetime import datetime
-
 from job_store import PrintJob
 
 CREDENTIALS_PATH = 'printer-monitoring-474822-bdfc6f0da109.json'
 SPREADSHEET_NAME = "print-records"
-WORKSHEET_NAME = "Raw Data"
 
 class SheetClient:
-    def __init__(self):
+    def __init__(self, worksheet_name):
         self.credentials_path = CREDENTIALS_PATH
         self.spreadsheet_name = SPREADSHEET_NAME
-        self.worksheet_name = WORKSHEET_NAME
+        self.worksheet_name = worksheet_name
         self._client = None
         self._spreadsheet = None
         self._sheet = None
@@ -136,3 +134,33 @@ class SheetClient:
             materials=[m.strip() for m in row[6].split(",")] if row[6] else [],
             errors= row[7] if len(row) > 7 else ""
         )
+    
+    def mfa_display_info(self):
+        """Retrieve printer name, status, start time, and duration; calculate completion% for Printing."""
+        sheet = self._connect()
+        data = sheet.get('J1:M6')
+
+        results = []
+        for row in data:
+            if len(row) < 4:
+                continue
+            printer, status, start_time, duration = row
+            completion = None
+            if status.lower() == "printing":
+                try:
+                    start_dt = datetime.strptime(start_time, "%m/%d/%Y %H:%M")
+                    duration_hr = float(duration)
+                    elapsed = (datetime.now() - start_dt).total_seconds() / 3600.0
+                    completion = min(100.0, max(0.0, (elapsed / duration_hr) * 100))
+                except Exception:
+                    completion = None
+
+            results.append({
+                "printer": printer,
+                "status": status,
+                "start_time": start_time,
+                "duration_hr": duration,
+                "completion_percent": completion
+            })
+
+        return results

@@ -10,7 +10,7 @@ from gspread_updater import SheetClient
 def main():
     # Initialize
     store = js.JobStore()
-    sheet_client = SheetClient()
+    sheet_client = SheetClient("Raw Data")
     store.add_job(get_init_job(sheet_client))  
 
     while True:
