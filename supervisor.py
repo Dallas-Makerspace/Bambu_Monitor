@@ -4,7 +4,6 @@ Supervisor for Waydroid, Android debugger, main app logic, and the NiceGUI UI.
 Ensures processes start in order, are monitored, and restarted on crash.
 """
 
-import datetime
 import re
 import subprocess
 import threading
@@ -73,7 +72,7 @@ def bambu_monitor_startup():
 
     print("[Supervisor] Launching print monitoring service (bambu_monitor.py)...")
     main_proc = subprocess.Popen(
-        ["handy_env/bin/python", MONITORING_SERVICE],
+        [PYTHON_ENV, MONITORING_SERVICE],
         env=os.environ.copy(),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -84,7 +83,7 @@ def bambu_monitor_startup():
 def mfa_mail_startup(): 
     print("[Supervisor] Launching UI service...")
     ui_proc = subprocess.Popen(
-        ["mfa2_env/bin/python", MFA_UI],
+        [PYTHON_ENV, MFA_UI],
         env=os.environ.copy(),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -139,7 +138,7 @@ def log_stream(proc, filename, tag):
     """Mirror process stdout to a file with timestamps."""
     with open(filename, "a", buffering=1) as f:  # line-buffered append mode
         for line in proc.stdout:
-            ts = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+            ts = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
             formatted = f"{ts} [{tag}] {line}"
             print(formatted, end="")   # keep live console output
             f.write(formatted)
