@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import math
 import multiprocessing
 from multiprocessing import context
@@ -80,7 +80,8 @@ def index():
 
     @ui.refreshable
     def notifications_view():
-        ui.label('Notification Viewer')
+        ui.separator()
+        ui.label('MFA Codes')
         data, set_data = ui.state(index.model)
         index.set_notifications = set_data
 
@@ -92,7 +93,10 @@ def index():
                 with ui.card().props('flat bordered').classes('p-2 m-1 w-full'):
                     with ui.row().classes('justify-between w-full'):
                         ui.label(f"Code: {note.code}")
-                        ui.label(f"Time: {note.time}").style(f"color:{note.color}")
+                        with ui.row():
+                            ui.label("Time:")
+                            local_time = note.time.replace(tzinfo=timezone.utc).astimezone().strftime("%I:%M %p").lstrip("0")
+                            ui.label(local_time).style(f"color:{note.color}")
                         ui.label(f"ID: {note.id}")
 
     def queue_listener():
