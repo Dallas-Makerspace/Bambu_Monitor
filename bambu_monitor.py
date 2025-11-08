@@ -44,8 +44,7 @@ def main():
 
         except Exception as e:
             print(f"Error occurred: {e}. Restarting loop...")
-            ts = datetime.datetime.now().strftime("[%Y-%m-%d_%H:%M:%S]")
-            os.system(f"adb pull /sdcard/view.xml err_{ts}.xml>/dev/null")
+            log_error(e)
             cntrl.go_to_printing_history()
             continue
 
@@ -206,6 +205,29 @@ def get_first_gui_entry():
     job = job_from_screen_entry(snapshot)
     get_job_details(screen[snapshot], job)
     return job
+
+def log_error(e):
+    ts = datetime.datetime.now().strftime("[%Y-%m-%d_%H-%M-%S]")
+    base_dir = "monitoring_errors"
+    os.makedirs(base_dir, exist_ok=True)
+
+    err_dir = os.path.join(base_dir, f"err_{ts}")
+    os.makedirs(err_dir, exist_ok=True)
+
+    # Error text
+    with open(os.path.join(err_dir, "error.txt"), "w") as f:
+        f.write(f"Error occurred at {ts}:\n{str(e)}\n")
+
+    # XML View
+    os.system("adb shell uiautomator dump /sdcard/view.xml")
+    os.system(f"adb pull /sdcard/view.xml {err_dir}/view.xml > /dev/null")
+
+    # Screenshot
+    screenshot_path = os.path.join(err_dir, "screenshot.png")
+    with open(screenshot_path, "wb") as f:
+        subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=f)
+
+    print(f"Error logged in {err_dir}. Restarting loop...")
 
 
 if __name__ == "__main__":

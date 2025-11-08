@@ -1,11 +1,13 @@
 [Unit]
-Description=Waydroid Daemon
-After=network.target
+Description=Bambu Monitor Supervisor
+After=graphical-session.target network.target
+Wants=graphical-session.target
 
 [Service]
+Environment=QT_QPA_PLATFORM=wayland
 Type=simple
-WorkingDirectory=/home/ USER /Bambu_Monitor
-ExecStart=/usr/bin/python3 /home/ USER /Bambu_Monitor/supervisor.py
+WorkingDirectory=/home/dms3d/Bambu_Monitor
+ExecStart=/usr/bin/python3 /home/dms3d/Bambu_Monitor/supervisor.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
