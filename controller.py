@@ -16,6 +16,7 @@ def get_devices():
     return list(pr.parse_screen(False).keys())[:-1]
 
 def go_to_device_page(machine):
+    os.system("adb shell input keyevent KEYCODE_BACK")
     tap_by_desc("Devices")
     if not find_by_desc("brand_logo"):
         os.system("adb shell input keyevent KEYCODE_BACK")
