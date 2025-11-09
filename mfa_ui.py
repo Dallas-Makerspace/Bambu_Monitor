@@ -33,36 +33,19 @@ def index():
 
         with ui.row().classes('w-full justify-around p-4'):
             for p in data:
+                print(p)
                 printer_name = p.get('printer', 'Unknown')
                 status = p.get('status', 'Unknown')
-                start_time_str = p.get('start_time')
-                duration_hr = p.get('duration_hr')
-                completion = 0.0
-                label_text = status  # default label text
+                completion = p.get('completion', 'Unknown')
+                remaining_hr = p.get('time_left', 'Unknown')
+                label_text = status
+                if status == "Printing":
+                    label_text = remaining_hr
 
-                # --- Calculate progress (fraction) and remaining time ---
-                try:
-                    if status.lower() in ('success', 'canceled', 'cancelled'):
-                        completion = 1.0
-                    elif status.lower() == 'printing' and start_time_str and duration_hr:
-                        start = datetime.strptime(start_time_str, "%m/%d/%Y %H:%M")
-                        duration_sec = float(duration_hr) * 3600
-                        elapsed_sec = (datetime.now() - start).total_seconds()
-                        completion = min(100.0, max(0.0, (elapsed_sec / duration_sec) * 100)) / 100
-                        completion = round(completion, 2)
-
-                        remaining_hr = math.trunc(round(max(0.0, float(duration_hr) - (elapsed_sec / 3600)), 0))
-                        label_text = f"~{remaining_hr} hr remaining"
-                    else:
-                        completion = 0.0
-                except Exception as e:
-                    print(f"[Progress Calc Error] {printer_name}: {e}")
-                    completion = 0.0
-
-                color = 'primary'  # default (blue)
+                color = 'primary'
                 if status.lower() == 'success':
                     color = 'green'
-                elif status.lower() in ('canceled', 'cancelled'):
+                elif status.lower() == 'printing':
                     color = 'orange'
 
                 with ui.column().classes('items-center'):
@@ -125,8 +108,7 @@ def poll_mfa_display():
     global printer_data
     while True:
         try:
-            snapshot = sheet_client.mfa_display_info()
-            printer_data = snapshot
+            printer_data = sheet_client.get_mfa_display_info()
             print(f"[MFA Display Update] Retrieved {len(printer_data)} entries")
 
             if hasattr(index, 'set_printers'):
@@ -142,7 +124,7 @@ def poll_mfa_display():
 
 def start_background_thread():
     global sheet_client
-    sheet_client = SheetClient("mfa_display")
+    sheet_client = SheetClient("device_status")
     thread = threading.Thread(target=poll_mfa_display, daemon=True)
     thread.start()
     print("[MFA Display Thread] Started")

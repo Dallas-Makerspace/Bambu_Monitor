@@ -3,18 +3,34 @@ import re
 import subprocess
 import time
 from lxml import etree
+import parser as pr
 
 def go_to_printing_history():
     os.system("adb shell input keyevent KEYCODE_BACK")
     tap_by_desc("Me")
     tap_by_desc("Printing History")
 
+def get_devices():
+    tap_by_desc("Devices")
+    if not find_by_desc("brand_logo"):
+        os.system("adb shell input keyevent KEYCODE_BACK")
+        tap_by_desc("Devices")
+        
+    tap_by_desc("brand_logo")
+    return list(pr.parse_screen(False).keys())[:-1]
 
 def go_to_device_page(machine):
-    tap_by_desc("Back")
     tap_by_desc("Devices")
+    if not find_by_desc("brand_logo"):
+        os.system("adb shell input keyevent KEYCODE_BACK")
+        tap_by_desc("Devices")
+
     tap_by_desc("brand_logo")
+    list_screen = pr.parse_screen(False)
     tap_by_desc(machine)
+    machine_screen = pr.parse_screen(False)
+    if machine_screen.keys() == list_screen.keys():
+        os.system("adb shell input keyevent KEYCODE_BACK")
     time.sleep(1)
 
 

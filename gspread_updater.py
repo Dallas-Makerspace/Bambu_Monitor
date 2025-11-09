@@ -135,32 +135,49 @@ class SheetClient:
             errors= row[7] if len(row) > 7 else ""
         )
     
-    def mfa_display_info(self):
-        """Retrieve printer name, status, start time, and duration; calculate completion% for Printing."""
+    def set_mfa_display_info(self, row_number: int, row_data: dict):
+        """
+        Tracks the current status and remaining time on a device.
+        This is specifically for the heads-up display on the mfa monitor
+        """ 
+        ws = self._connect()
+        try:
+            values = [
+                row_data.get("Printer", ""),
+                row_data.get("Status", ""),
+                row_data.get("Completion", ""),
+                row_data.get("Time", "")
+            ]
+            ws.update(f'A{row_number}:D{row_number}', [values])
+            print(f"[SheetClient] Row {row_number} updated: {values}")
+        except Exception as e:
+            print(f"[SheetClient Error] Failed to update row {row_number}: {e}")
+
+    def get_mfa_display_info(self):
+        """
+        Expects columns A: Printer, B: Status, C: Completion, D: Time.
+        """
         sheet = self._connect()
-        data = sheet.get('J1:M6')
+        data = sheet.get('A1:D6')
 
         results = []
         for row in data:
             if len(row) < 4:
                 continue
-            printer, status, start_time, duration = row
-            completion = None
-            if status.lower() == "printing":
-                try:
-                    start_dt = datetime.strptime(start_time, "%m/%d/%Y %H:%M")
-                    duration_hr = float(duration)
-                    elapsed = (datetime.now() - start_dt).total_seconds() / 3600.0
-                    completion = min(100.0, max(0.0, (elapsed / duration_hr) * 100))
-                except Exception:
-                    completion = None
+
+            printer, status, completion, time_left = row
+
+            # --- Normalize completion to float or None ---
+            try:
+                completion = float(completion)
+            except (TypeError, ValueError):
+                completion = None
 
             results.append({
                 "printer": printer,
                 "status": status,
-                "start_time": start_time,
-                "duration_hr": duration,
-                "completion_percent": completion
+                "completion": completion,
+                "time_left": time_left,
             })
 
         return results

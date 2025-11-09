@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 import subprocess
 import time
 import controller as cntrl
@@ -11,6 +12,7 @@ def main():
     # Initialize
     store = js.JobStore()
     sheet_client = SheetClient("Raw Data")
+    mfa_display_sheet = SheetClient("device_status")
     store.add_job(get_init_job(sheet_client))  
 
     while True:
@@ -22,6 +24,9 @@ def main():
                 wait += 1
                 if wait > 10:
                     subprocess.run(["sudo", "reboot"])
+
+            # Update MFA display
+            get_machine_statuses(mfa_display_sheet)
 
             os.system("adb pull /sdcard/view.xml test.xml")
             # Check for new jobs since last run
@@ -38,8 +43,8 @@ def main():
             if len(store) > 100:
                 store = store[50:]
 
-            # Wait 5 minutes before next check
-            print("Waiting 5 minutes before next check")
+            # Wait 30 seconds minutes before next check
+            print("Waiting 30 seconds before next check")
             time.sleep(300)
 
         except Exception as e:
@@ -77,6 +82,7 @@ def check_machine_errors(job):
         content = list(pr.parse_screen(long_clickable_only=False).keys())
         if content[1] not in job.errors:
             job.errors += content[1]
+        os.system("adb shell input keyevent KEYCODE_BACK")
 
 
 def scroll_to_job(job, prev_screen=None):
@@ -205,6 +211,28 @@ def get_first_gui_entry():
     job = job_from_screen_entry(snapshot)
     get_job_details(screen[snapshot], job)
     return job
+
+
+
+def get_machine_statuses(mfa_display_sheet):
+    printers = cntrl.get_devices()
+    for printer in printers:
+        cntrl.go_to_device_page(printer)
+        screen = pr.parse_screen(False)
+        time_left_str = next((x for x in screen.keys() if re.fullmatch(r'-.*m', x)), None)
+        if time_left_str is None:
+            status = next((x for x in screen.keys() if re.fullmatch(r'Success', x)), "Idle")
+            completion = 1
+            time_left = 0
+        else:
+            status = "Printing"
+            completion_str = next((x for x in screen.keys() if re.fullmatch(r'\d{1,2}%', x)), "100")
+            completion = float(completion_str.replace('%', '')) / 100
+            time_left = time_left_str
+
+        row_data = {"Printer": printer, "Status": status, "Completion": completion, "Time": time_left}
+        mfa_display_sheet.set_mfa_display_info(printers.index(printer) + 1, row_data)
+
 
 def log_error(e):
     ts = datetime.datetime.now().strftime("[%Y-%m-%d_%H-%M-%S]")
