@@ -25,9 +25,6 @@ def main():
                 if wait > 10:
                     subprocess.run(["sudo", "reboot"])
 
-            # Update MFA display
-            get_machine_statuses(mfa_display_sheet)
-
             os.system("adb pull /sdcard/view.xml test.xml")
             # Check for new jobs since last run
             print("Checking for new jobs...")
@@ -38,6 +35,9 @@ def main():
             # Update in-progress jobs in memory
             print("Updating in-progress jobs...")
             update_in_progress_jobs(store, sheet_client)
+
+            # Update MFA display
+            get_machine_statuses(mfa_display_sheet)
 
             # Purge very old jobs from in-memory store
             if len(store) > 100:
@@ -60,13 +60,20 @@ def update_in_progress_jobs(store, sheet_client):
     """
     in_progress = store.get_jobs(status="Printing")
     for job in in_progress:
-        print(f"Checking inprogress job {job.name}...")
-        cntrl.go_to_printing_history()
-        _job = scroll_to_job(job)
-        if _job.status == "Printing":
-            check_machine_errors(job)
-        job.status = _job.status
+        if (datetime.now() - job.date).total_seconds() < 48 * 3600:
+            print(f"Checking inprogress job {job.name}...")
+            cntrl.go_to_printing_history()
+            _job = scroll_to_job(job)
+            if _job.status == "Printing":
+                check_machine_errors(job)
+            job.status = _job.status
+        # sometimes jobs in the handy list don't update
+        # after 48 hours we will default to complete to avoid long periods of scrolling down the list
+        else:
+            job.status = "Success"
+
         sheet_client.update_job(job)
+     
     cntrl.go_to_printing_history()
 
 
@@ -211,7 +218,6 @@ def get_first_gui_entry():
     job = job_from_screen_entry(snapshot)
     get_job_details(screen[snapshot], job)
     return job
-
 
 
 def get_machine_statuses(mfa_display_sheet):

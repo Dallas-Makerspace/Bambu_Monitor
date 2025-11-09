@@ -11,11 +11,7 @@ def go_to_printing_history():
     tap_by_desc("Printing History")
 
 def get_devices():
-    tap_by_desc("Devices")
-    if not find_by_desc("brand_logo"):
-        os.system("adb shell input keyevent KEYCODE_BACK")
-        tap_by_desc("Devices")
-        
+    go_to_device_page("Savage")    
     tap_by_desc("brand_logo")
     return list(pr.parse_screen(False).keys())[:-1]
 
