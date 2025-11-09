@@ -45,7 +45,7 @@ def main():
 
             # Wait 30 seconds minutes before next check
             print("Waiting 30 seconds before next check")
-            time.sleep(300)
+            time.sleep(30)
 
         except Exception as e:
             print(f"Error occurred: {e}. Restarting loop...")
