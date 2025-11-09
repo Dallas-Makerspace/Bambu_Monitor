@@ -40,18 +40,19 @@ def tap_by_desc(desc):
 
 def find_by_desc(desc):
     """
-    Return the bounds of the first node matching the content description, or False if not found.
+    Return the bounds of the first node whose content-desc or text contains `desc`.
     """
     os.system("adb shell uiautomator dump /sdcard/view.xml")
     os.system("adb pull /sdcard/view.xml >/dev/null")
     tree = etree.parse("view.xml")
-    node = tree.xpath(f"//node[@content-desc='{desc}']")
-    if(node is None):
-        node = tree.xpath(f"//node[@text='{desc}']")
+
+    xpath = f"//node[contains(normalize-space(@content-desc), '{desc}')] | //node[contains(normalize-space(@text), '{desc}')]"
+    node = tree.xpath(xpath)
+
     if not node:
         print(f"Element '{desc}' not found")
         return False
-    else:    
+    else:
         return node[0].get("bounds")
 
 

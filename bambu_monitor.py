@@ -60,7 +60,7 @@ def update_in_progress_jobs(store, sheet_client):
     """
     in_progress = store.get_jobs(status="Printing")
     for job in in_progress:
-        if (datetime.now() - job.date).total_seconds() < 48 * 3600:
+        if (datetime.datetime.now() - job.date).total_seconds() < 48 * 3600:
             print(f"Checking inprogress job {job.name}...")
             cntrl.go_to_printing_history()
             _job = scroll_to_job(job)
