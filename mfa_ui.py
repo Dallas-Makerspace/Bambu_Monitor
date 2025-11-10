@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import math
 import multiprocessing
 from multiprocessing import context
+import os
 import threading
 import time
 from nicegui import ui
@@ -146,6 +147,7 @@ def main():
     mail_proc.start()
 
     start_background_thread()
+    os.system("sudo ydotool mousemove 9999 9999")
     ui.run(dark=True, fullscreen=True, reload=False)
 
 
