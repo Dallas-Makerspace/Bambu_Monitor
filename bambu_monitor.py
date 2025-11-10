@@ -19,7 +19,7 @@ def main():
         try:
             # wait for app to become responsive
             wait = 0
-            while cntrl.tap_by_desc("Wait"):
+            while cntrl.tap_by_desc("Wait", whole_match=False):
                 time.sleep(5)
                 wait += 1
                 if wait > 10:
@@ -224,7 +224,7 @@ def get_machine_statuses(mfa_display_sheet):
     printers = cntrl.get_devices()
     for printer in printers:
         cntrl.go_to_device_page(printer)
-        screen = pr.parse_screen(False)
+        screen = pr.parse_screen(long_clickable_only=False)
         time_left_str = next((x for x in screen.keys() if re.fullmatch(r'-.*m', x)), None)
         if time_left_str is None:
             status = next((x for x in screen.keys() if re.fullmatch(r'Success', x)), "Idle")

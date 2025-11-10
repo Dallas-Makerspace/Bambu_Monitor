@@ -13,7 +13,7 @@ def go_to_printing_history():
 def get_devices():
     go_to_device_page("Savage")    
     tap_by_desc("brand_logo")
-    return list(pr.parse_screen(False).keys())[:-1]
+    return list(pr.parse_screen(long_clickable_only=False).keys())[:-1]
 
 def go_to_device_page(machine):
     os.system("adb shell input keyevent KEYCODE_BACK")
@@ -23,23 +23,39 @@ def go_to_device_page(machine):
         tap_by_desc("Devices")
 
     tap_by_desc("brand_logo")
-    list_screen = pr.parse_screen(False)
+    list_screen = pr.parse_screen(long_clickable_only=False)
     tap_by_desc(machine)
-    machine_screen = pr.parse_screen(False)
+    machine_screen = pr.parse_screen(long_clickable_only=False)
     if machine_screen.keys() == list_screen.keys():
         os.system("adb shell input keyevent KEYCODE_BACK")
     time.sleep(1)
 
 
-def tap_by_desc(desc):
-    node = find_by_desc(desc)
+def tap_by_desc(desc, whole_match: bool = True):
+    if whole_match:
+        node = find_by_desc(desc)
+    else:
+        node = find_by_desc_including(desc)
     if node:
         tap_by_bounds(node)
     else:
         return False
 
+def find_by_desc(desc): 
+    """ Return the bounds of the first node matching the content description, or False if not found. """ 
+    os.system("adb shell uiautomator dump /sdcard/view.xml") 
+    os.system("adb pull /sdcard/view.xml >/dev/null") 
+    tree = etree.parse("view.xml") 
+    node = tree.xpath(f"//node[@content-desc='{desc}']") 
+    if(node is None): 
+        node = tree.xpath(f"//node[@text='{desc}']") 
+        
+    if not node: 
+        print(f"Element '{desc}' not found") 
+        return False 
+    else: return node[0].get("bounds")
 
-def find_by_desc(desc):
+def find_by_desc_including(desc):
     """
     Return the bounds of the first node whose content-desc or text contains `desc`.
     """
