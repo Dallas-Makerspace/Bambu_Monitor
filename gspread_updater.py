@@ -158,7 +158,7 @@ class SheetClient:
         Expects columns A: Printer, B: Status, C: Completion, D: Time.
         """
         sheet = self._connect()
-        data = sheet.get('A1:D6')
+        data = sheet.get('A1:D32')
 
         results = []
         for row in data:
@@ -167,7 +167,6 @@ class SheetClient:
 
             printer, status, completion, time_left = row
 
-            # --- Normalize completion to float or None ---
             try:
                 completion = float(completion)
             except (TypeError, ValueError):
