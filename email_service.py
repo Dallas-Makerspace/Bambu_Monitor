@@ -98,21 +98,35 @@ def register_watch(gmail):
     print("Gmail watch registered:")
     print(json.dumps(response, indent=2))
 
-def fetch_latest_email_from_history(gmail, new_history_id):
-    last_history_id = load_last_history_id()
+last_seen_history_id = None
 
-    start_id = last_history_id or new_history_id
+def fetch_latest_email_from_history(gmail, new_history_id):
+    global last_seen_history_id
+
+    # First push ever → set baseline and return
+    if last_seen_history_id is None:
+        print(f"Setting initial history baseline: {new_history_id}")
+        last_seen_history_id = new_history_id
+        return
+
+    # Ignore renewal pushes or duplicates
+    if int(new_history_id) <= int(last_seen_history_id):
+        print(f"Ignoring stale or renewal push: {new_history_id}")
+        return
+
+    print(f"Fetching history from {last_seen_history_id} → {new_history_id}")
 
     response = gmail.users().history().list(
         userId="me",
-        startHistoryId=start_id,
+        startHistoryId=last_seen_history_id,
         historyTypes=["messageAdded"]
     ).execute()
+
+    last_seen_history_id = new_history_id  # update baseline
 
     records = response.get("history", [])
     if not records:
         print("No new messages in history.")
-        save_last_history_id(new_history_id)
         return
 
     for record in records:
@@ -122,24 +136,10 @@ def fetch_latest_email_from_history(gmail, new_history_id):
                 userId="me", id=msg_id, format="full"
             ).execute()
 
-            # Skip sent or draft messages
-            if any(lbl in msg.get("labelIds", []) for lbl in ["SENT", "DRAFT"]):
+            if "SENT" in msg.get("labelIds", []) or "DRAFT" in msg.get("labelIds", []):
                 continue
 
             addNotification(msg_id, msg)
-
-    # Update baseline to latest known
-    save_last_history_id(response.get("historyId", new_history_id))
-
-def load_last_history_id():
-    if os.path.exists("last_history_id.txt"):
-        with open("last_history_id.txt") as f:
-            return f.read().strip()
-    return None
-
-def save_last_history_id(history_id):
-    with open("last_history_id.txt", "w") as f:
-        f.write(str(history_id))
 
 
 # === Notification Management ===

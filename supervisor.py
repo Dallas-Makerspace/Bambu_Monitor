@@ -96,43 +96,22 @@ def cloudflared_startup():
     """Start a Cloudflare quick tunnel and update the Pub/Sub push endpoint."""
     print("[Supervisor] Starting Cloudflare quick tunnel...")
 
+    # Read Cloudflare token from file
+    try:
+        with open("cf_token.txt", "r") as f:
+            token = f.read().strip()
+    except Exception as e:
+        print(f"[Supervisor] Failed to read cf_token.txt: {e}")
+        return
+
     tunnel_proc = subprocess.Popen(
-        ["cloudflared", "tunnel", "--url", "http://localhost:8080"],
+        ["cloudflared", "tunnel", "run", "--token", token],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
         bufsize=1,
     )
 
-    # goal is to remove this as soon as we get a persistant tunnel
-    def monitor_tunnel_output():
-        project_id = "bambu-mfa-with-oauth"
-        subscription_id = "gmail-push-test-sub"
-        url_pattern = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
-        with pubsub_v1.SubscriberClient() as subscriber:
-            subscription_path = subscriber.subscription_path(project_id, subscription_id)
-            for line in tunnel_proc.stdout:
-                print(f"[Cloudflare] {line.strip()}")
-                if "Your quick Tunnel has been created!" in line:
-                    print("[Supervisor] Tunnel creation message detected.")
-                match = url_pattern.search(line)
-                if match:
-                    public_url = match.group(0)
-                    print(f"[Supervisor] Cloudflare tunnel ready: {public_url}")
-                    # Update push endpoint in Google Cloud
-                    update_push_endpoint(subscriber, subscription_path, public_url)
-                    break
-
-    threading.Thread(target=monitor_tunnel_output, daemon=True).start()
-
-def update_push_endpoint(subscriber, subscription_path, public_url):
-    """Update Gmail Pub/Sub push subscription with new Cloudflare endpoint."""
-    try:
-        push_config = pubsub_v1.types.PushConfig(push_endpoint=f"{public_url}/pubsub/push")
-        subscriber.modify_push_config(request={"subscription": subscription_path, "push_config": push_config})
-        print(f"[Supervisor] Updated push endpoint to {public_url}")
-    except Exception as e:
-        print(f"[Supervisor] Failed to update push endpoint: {e}")
 
 def log_stream(proc, filename, tag):
     """Mirror process stdout to a file with timestamps."""

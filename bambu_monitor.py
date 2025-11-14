@@ -221,7 +221,8 @@ def get_first_gui_entry():
 
 
 def get_machine_statuses(mfa_display_sheet):
-    printers = cntrl.get_devices()
+    printers=["Savage","Hyneman","Imahara","Belleci","combs","Byron"]
+    
     for printer in printers:
         cntrl.go_to_device_page(printer)
         screen = pr.parse_screen(long_clickable_only=False)
