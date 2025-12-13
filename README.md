@@ -17,15 +17,18 @@
 
 ## Google sheet config
 
-### Create the google sheet and share it with the gserviceaccount
-### In column A of device_status list all the printers
+1) Create the google sheet and share it with the gserviceaccount
+2) In column A of device_status list all the printers
 
-#### document name (defined in gspread_updater.py): 
+document name (defined in gspread_updater.py): 
+```
 print-records 
-#### sheet names (defined in bambu_monitor.py)
-data sheet: Raw Data 
-device status: device_status
-
+```
+sheet names (defined in bambu_monitor.py)
+```
+Raw Data 
+device_status
+```
 
 ## Raspberry Pi Setup instructions
 
