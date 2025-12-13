@@ -25,7 +25,6 @@ def main():
                 if wait > 10:
                     subprocess.run(["sudo", "reboot"])
 
-            os.system("adb pull /sdcard/view.xml test.xml")
             # Check for new jobs since last run
             print("Checking for new jobs...")
             cntrl.go_to_printing_history()
@@ -37,7 +36,7 @@ def main():
             update_in_progress_jobs(store, sheet_client)
 
             # Update MFA display
-            get_machine_statuses(mfa_display_sheet)
+            get_machine_statuses(mfa_display_sheet, sheet_client, store)
 
             # Purge very old jobs from in-memory store
             if len(store) > 100:
@@ -64,8 +63,6 @@ def update_in_progress_jobs(store, sheet_client):
             print(f"Checking inprogress job {job.name}...")
             cntrl.go_to_printing_history()
             _job = scroll_to_job(job)
-            if _job.status == "Printing":
-                check_machine_errors(job)
             job.status = _job.status
         # sometimes jobs in the handy list don't update
         # after 48 hours we will default to complete to avoid long periods of scrolling down the list
@@ -75,22 +72,6 @@ def update_in_progress_jobs(store, sheet_client):
         sheet_client.update_job(job)
      
     cntrl.go_to_printing_history()
-
-
-def check_machine_errors(job):
-    """
-    Check the assigned machine for warnings and append new errors to the job.
-    """
-    print(f"Checking errors on {job.machine}...")
-    cntrl.go_to_device_page(job.machine)
-
-    if cntrl.find_by_desc("Warning"):
-        # Pull the second element of the parsed screen as the error content
-        content = list(pr.parse_screen(long_clickable_only=False).keys())
-        if content[1] not in job.errors:
-            job.errors += content[1]
-        os.system("adb shell input keyevent KEYCODE_BACK")
-
 
 def scroll_to_job(job, prev_screen=None):
     """
@@ -143,12 +124,28 @@ def get_job_details(bounds, job):
     cntrl.tap_by_bounds(bounds)
 
     content = list(pr.parse_screen(long_clickable_only=False).keys())
-    index = content.index("Filaments")
-    if index != -1:
-        job.weight = float(content[index + 1].replace("g","").strip())
-        _materials = content[index + 2 : len(content) -1]
-        materials = _materials[:len(_materials) // 2]  # First half is materials, second is AMS slots
-        job.materials.extend(materials)
+    try:
+        index = content.index("Filaments")
+    except ValueError:
+        cntrl.tap_by_desc("Back")
+        return job
+
+    weight_str = content[index + 1] if index + 1 < len(content) else ""
+    weight_val = re.sub(r"[^\d.]", "", weight_str)
+    if weight_val:
+        job.weight = float(weight_val)
+
+    # After the weight, the screen lists materials (optionally grouped by nozzle) with AMS slots interspersed.
+    # Collect only the material entries (contain "| <number>g") and ignore nozzle headers and AMS slot labels.
+    material_pattern = re.compile(r".+\|\s*\d+(\.\d+)?g", re.IGNORECASE)
+    for entry in content[index + 2 :]:
+        lower_entry = entry.lower()
+        if lower_entry.startswith("print again"):
+            break
+        if "nozzle" in lower_entry:
+            continue
+        if material_pattern.fullmatch(entry.strip()):
+            job.materials.append(entry.strip())
         
     cntrl.tap_by_desc("Back")
     return job
@@ -220,11 +217,12 @@ def get_first_gui_entry():
     return job
 
 
-def get_machine_statuses(mfa_display_sheet):
-    printers=["Savage","Hyneman","Imahara","Belleci","combs","Byron"]
-    
-    for printer in printers:
+def get_machine_statuses(mfa_display_sheet, job_sheet, store):
+    printer_rows = mfa_display_sheet.get_printer_config(max_rows=32)
+
+    for row_number, printer in printer_rows:
         cntrl.go_to_device_page(printer)
+        record_warning_for_machine(store, job_sheet, printer)
         screen = pr.parse_screen(long_clickable_only=False)
         time_left_str = next((x for x in screen.keys() if re.fullmatch(r'-.*m', x)), None)
         if time_left_str is None:
@@ -237,8 +235,36 @@ def get_machine_statuses(mfa_display_sheet):
             completion = float(completion_str.replace('%', '')) / 100
             time_left = time_left_str
 
-        row_data = {"Printer": printer, "Status": status, "Completion": completion, "Time": time_left}
-        mfa_display_sheet.set_mfa_display_info(printers.index(printer) + 1, row_data)
+        row_data = {"Status": status, "Completion": completion, "Time": time_left}
+        mfa_display_sheet.set_mfa_display_info(row_number, row_data)
+
+def get_active_job_for_machine(store, machine):
+    """
+    Return the most recent in-progress job for a specific machine, if any.
+    """
+    active_jobs = [j for j in store.get_jobs(status="Printing") if j.machine == machine]
+    if not active_jobs:
+        return None
+    return max(active_jobs, key=lambda j: j.date)
+
+
+def record_warning_for_machine(store, job_sheet, machine):
+    """
+    If a warning popup is present on the device page, record it against the active job and dismiss it.
+    """
+    if not cntrl.find_by_desc("Warning"):
+        return
+
+    content = list(pr.parse_screen(long_clickable_only=False).keys())
+    error_message = content[1] if len(content) > 1 else None
+
+    active_job = get_active_job_for_machine(store, machine)
+    if active_job and error_message and error_message not in active_job.errors:
+        active_job.errors += error_message if not active_job.errors else f" {error_message}"
+        job_sheet.update_job(active_job)
+
+    # Clear the popup so status parsing is not disrupted
+    os.system("adb shell input keyevent KEYCODE_BACK")
 
 
 def log_error(e):

@@ -11,7 +11,6 @@ import time
 import os
 from datetime import datetime, timedelta, time as dtime
 from zoneinfo import ZoneInfo
-from google import pubsub_v1
 
 ANDROID_IP = "192.168.240.112"
 MFA_UI = "mfa_ui.py"
@@ -61,8 +60,10 @@ def read_output(pipe, prefix):
 
 def on_ready():
     bambu_monitor_startup()
-    cloudflared_startup()
-    mfa_mail_startup()
+    # cloudflared_startup()
+
+    # Optional: mfa code kiosk component
+    # mfa_mail_startup()
 
 def bambu_monitor_startup():
     """Starts the Android app, launches backend logic, and opens the UI."""
@@ -91,7 +92,7 @@ def mfa_mail_startup():
     )
     threading.Thread(target=log_stream, args=(ui_proc, "mfa_ui.out", "UI"), daemon=True).start()
 
-
+# deprecated
 def cloudflared_startup():
     """Start a Cloudflare quick tunnel and update the Pub/Sub push endpoint."""
     print("[Supervisor] Starting Cloudflare quick tunnel...")

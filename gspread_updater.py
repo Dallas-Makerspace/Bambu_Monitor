@@ -38,7 +38,7 @@ class SheetClient:
             if len(row) < 3:
                 continue
 
-            row_name = row[0].strip()
+            row_name = row[0]
             row_date_str = row[2].strip()
 
             try:
@@ -134,6 +134,24 @@ class SheetClient:
             materials=[m.strip() for m in row[6].split(",")] if row[6] else [],
             errors= row[7] if len(row) > 7 else ""
         )
+
+    def get_printer_config(self, max_rows: int = 32):
+        """
+        Reads up to max_rows of column A for printer configuration.
+        Returns a list of (row_number, printer_name) tuples for non-empty rows.
+        """
+        ws = self._connect()
+        data = ws.get(f"A1:A{max_rows}")
+        printers = []
+
+        for idx, row in enumerate(data, start=1):
+            if not row:
+                continue
+            printer = row[0].strip()
+            if printer:
+                printers.append((idx, printer))
+
+        return printers
     
     def set_mfa_display_info(self, row_number: int, row_data: dict):
         """
@@ -143,13 +161,12 @@ class SheetClient:
         ws = self._connect()
         try:
             values = [
-                row_data.get("Printer", ""),
                 row_data.get("Status", ""),
                 row_data.get("Completion", ""),
                 row_data.get("Time", "")
             ]
-            ws.update(f'A{row_number}:D{row_number}', [values])
-            print(f"[SheetClient] Row {row_number} updated: {values}")
+            ws.update(f'B{row_number}:D{row_number}', [values])
+            print(f"[SheetClient] Row {row_number} updated (columns B-D): {values}")
         except Exception as e:
             print(f"[SheetClient Error] Failed to update row {row_number}: {e}")
 

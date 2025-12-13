@@ -12,6 +12,20 @@
   - waydroid-daemon.service - Daemon service to initiate launch on startup
   - /BambuHandy - contains the android app
   - /secret.zip - client secret for google service account (encrypted)
+  - all other files related to the mfa kiosk component 
+
+
+## Google sheet config
+
+### Create the google sheet and share it with the gserviceaccount
+### In column A of device_status list all the printers
+
+#### document name (defined in gspread_updater.py): 
+print-records 
+#### sheet names (defined in bambu_monitor.py)
+data sheet: Raw Data 
+device status: device_status
+
 
 ## Raspberry Pi Setup instructions
 
@@ -35,6 +49,7 @@ sudo reboot
 ```
 unzip secret.zip
 ```
+OR provide your own gserviceaccount, modify CREDENTIALS_PATH in gspread_updater.py to point to the credentials file
 ### 5) Install dependencies
 ```
 sudo apt install adb curl lsb-release python3 python3-pip python3-venv -y
@@ -66,7 +81,7 @@ adb install-multiple ./BambuHandy/*.apk
 ### 9) manual step - launch bambu handy and login
 
 ### 10) Create and start user daemon 
-  - Note: replace USER in waydroid-daemon.service with username 
+  - Note: replace dms3d in waydroid-daemon.service with username 
   ```
 # Copy service file to user systemd directory
 mkdir -p ~/.config/systemd/user
