@@ -5,7 +5,7 @@ import threading
 import time
 from nicegui import ui
 
-import MFA_imap_Mail  # SAFE TO IMPORT; DOESN'T AUTORUN
+import MFA_imap_Mail
 
 from gspread_updater import SheetClient
 
@@ -183,7 +183,7 @@ def main():
 
     start_background_thread()
 
-    # Hide mouse cursor off-screen (your existing trick)
+    # Hide mouse cursor off-screen
     os.system("sudo ydotool mousemove 9999 9999")
 
     print("[UI] Starting NiceGUI...")
