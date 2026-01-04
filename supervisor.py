@@ -68,6 +68,7 @@ def on_ready():
 def bambu_monitor_startup():
     """Starts the Android app, launches backend logic, and opens the UI."""
     print("[Supervisor] Connecting Android debugger and launching app...")
+    sync_adb_keys()
     subprocess.run(["waydroid", "app", "launch", "bbl.intl.bambulab.com"])
     subprocess.run(["adb", "connect", ANDROID_IP])
 
@@ -80,6 +81,27 @@ def bambu_monitor_startup():
         text=True,
     )
     threading.Thread(target=log_stream, args=(main_proc, "bambu_monitor.out", "MAIN"), daemon=True).start()
+
+def sync_adb_keys():
+    adb_key_path = os.path.expanduser("~/.android/adbkey.pub")
+    try:
+        with open(adb_key_path, "r") as f:
+            adb_key = f.read().strip()
+        adb_setup_script = "\n".join([
+            "mkdir -p /data/misc/adb",
+            f'grep -qxF "{adb_key}" /data/misc/adb/adb_keys || echo "{adb_key}" >> /data/misc/adb/adb_keys',
+            "chmod 600 /data/misc/adb/adb_keys",
+            "chown system:system /data/misc/adb/adb_keys",
+        ]) + "\n"
+        subprocess.run(
+            ["waydroid", "shell"],
+            input=adb_setup_script,
+            text=True,
+            check=False,
+        )
+    except Exception as e:
+        print(f"[Supervisor] Failed to sync adb_keys: {e}")
+
 
 def mfa_mail_startup(): 
     print("[Supervisor] Launching UI service...")
