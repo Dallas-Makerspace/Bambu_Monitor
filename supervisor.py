@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 from adb_util import ADB_RETRY_SLEEP_S, ensure_adb_authorized, ensure_adb_connected, prepare_adb_env
 
-MFA_UI = "mfa_ui.py"
+MFA_UI = "mfa_imap_ui.py"
 MONITORING_SERVICE = "bambu_monitor.py"
 PYTHON_ENV = "handy_env/bin/python"
 UI_URL = "http://127.0.0.1:8080"
@@ -63,7 +63,7 @@ def on_ready():
     # cloudflared_startup()
 
     # Optional: mfa code kiosk component
-    # mfa_mail_startup()
+    mfa_mail_startup()
 
 def bambu_monitor_startup():
     """Starts the Android app, launches backend logic, and opens the UI."""
@@ -146,7 +146,7 @@ def schedule_daily_restart():
             sleep_s = _seconds_until_next_midnight(tz)
             print(f"[Supervisor] Next scheduled restart in ~{sleep_s} seconds (midnight local).")
             time.sleep(sleep_s)
-            os.system("sudo restart")
+            os.system("sudo reboot")
 
     threading.Thread(target=loop, daemon=True).start()
 

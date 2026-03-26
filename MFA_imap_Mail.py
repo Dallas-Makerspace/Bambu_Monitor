@@ -208,9 +208,15 @@ class Idler(object):
                 return self.dosync2()
 
             try:
-                body = re.search('Welcome to Bambu Lab([\\s\\S]*)Bambu Lab', message).group()
-                codeStr = re.search("Your verification code is:\\s+\\d\\d\\d\\d\\d\\d", message).group()
-                code = re.search("\\d\\d\\d\\d\\d\\d", codeStr).group()
+                body = re.search('below:([\\s\\S]*)This code', message).group()
+                body = str(body)
+                body= body.strip()
+                body = repr(body)
+                print(body)
+                codeStr = re.search(r"[0-9]{6}", body).group()
+                print(codeStr)
+                code = re.search("\\d{6}", codeStr).group()
+                print(code)
 
                 dateStr = re.search(
                     "Delivery-date: [A-Za-z]{3}, \\d{2} [A-Za-z]{3} \\d{4} \\d{2}:\\d{2}:\\d{2} -\\d{4}",
