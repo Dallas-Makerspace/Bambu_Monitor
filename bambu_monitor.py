@@ -8,6 +8,10 @@ import parser as pr
 import job_store as js
 from gspread_updater import SheetClient
 
+
+DEVICE_STATE_PATTERN = re.compile(r"^(?P<name>.+)\n(?P<state>Online|Busy|Offline|Idle)$")
+
+
 def main():
     # Initialize
     store = js.JobStore()
@@ -57,7 +61,7 @@ def update_in_progress_jobs(store, sheet_client):
     """
     Update all jobs in progress by checking their current status and errors, then sync to the sheet.
     """
-    in_progress = store.get_jobs(status="Printing")
+    in_progress = [j for j in store.get_jobs() if j.status in ("Printing", "Printing paused")]
     for job in in_progress:
         if (datetime.datetime.now() - job.date).total_seconds() < 48 * 3600:
             print(f"Checking inprogress job {job.name}...")
@@ -87,7 +91,10 @@ def scroll_to_job(job, prev_screen=None):
         return None
 
     for s in snapshots:
-        _job = job_from_screen_entry(s)
+        try:
+            _job = job_from_screen_entry(s)
+        except ValueError:
+            continue
         if _job.name == job.name and _job.date == job.date:
             return _job
 
@@ -102,7 +109,10 @@ def check_for_later_jobs(store, sheet_client):
     print(f"Checking for more recent jobs...")
     screen = pr.parse_screen()
     for s in screen.keys():
-        j = job_from_screen_entry(s)
+        try:
+            j = job_from_screen_entry(s)
+        except ValueError:
+            continue
         if store.find_job(j.name, j.date) is None: 
             get_job_details(screen[s], j)
             store.add_job(j)
@@ -158,29 +168,48 @@ def job_from_screen_entry(s):
     if s is None:
         return None 
     
-    s = list(s)
-    if len(s) == 7: del s[3]  # Remove extra element if present
+    s = [entry.strip() for entry in list(s) if entry and entry.strip()]
+    if len(s) < 5:
+        raise ValueError(f"Unexpected history entry format: {s}")
 
-    # Convert duration string to hours
-    _duration: float
-    if "s" in s[3].lower():
-        _duration = float(s[3].replace("s","")) / 3600
-    elif "min" in s[3].lower():
-        _duration = float(s[3].replace("min","")) / 60
-    else:
-        _duration = float(s[3].replace("h",""))        
-    _duration = round(_duration, 1)
+    # Structure is typically:
+    # [type, status, name, (<optional extra line(s)>), (<optional duration>), machine, plate+date]
+    # Duration may be absent (e.g., some canceled jobs), so detect it by pattern.
+    _duration = 0.0
+    for token in s[3:-2]:
+        parsed = _parse_duration_hours(token)
+        if parsed is not None:
+            _duration = round(parsed, 1)
+            break
 
     return js.PrintJob(
         status = s[1],
         name = s[2],
         duration = _duration,
-        machine = s[4],
-        date = pr.parse_job_date(s[5]),
+        machine = s[-2],
+        date = pr.parse_job_date(s[-1]),
         weight=0.0,
         materials=[],
         errors=""
     )
+
+def _parse_duration_hours(token):
+    """
+    Parse a duration token (e.g. "8.2h", "3min", "45s") into hours.
+    Returns None when the token is not a duration.
+    """
+    raw = token.strip().lower()
+    match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(s|min|h)", raw)
+    if not match:
+        return None
+
+    value = float(match.group(1))
+    unit = match.group(2)
+    if unit == "s":
+        return value / 3600
+    if unit == "min":
+        return value / 60
+    return value
 
 
 def get_init_job(sheet_client):
@@ -199,7 +228,6 @@ def get_init_job(sheet_client):
         # This becomes the first entry.
         if latest_job is None:
             latest_job = get_first_gui_entry()
-            latest_job = get_job_details(latest_job)
             sheet_client.update_job(latest_job)
 
     return latest_job
@@ -219,15 +247,21 @@ def get_first_gui_entry():
 
 def get_machine_statuses(mfa_display_sheet, job_sheet, store):
     printer_rows = mfa_display_sheet.get_printer_config(max_rows=32)
+    overview_states = get_device_overview_states()
 
     for row_number, printer in printer_rows:
         cntrl.go_to_device_page(printer)
         record_warning_for_machine(store, job_sheet, printer)
         screen = pr.parse_screen(long_clickable_only=False)
         time_left_str = next((x for x in screen.keys() if re.fullmatch(r'-.*m', x)), None)
+
         if time_left_str is None:
-            status = next((x for x in screen.keys() if re.fullmatch(r'Success', x)), "Idle")
-            completion = 1
+            status = overview_states.get(printer, "Idle")
+            if status == "Busy":
+                status = "Printing"
+            if next((x for x in screen.keys() if re.fullmatch(r'Success', x)), None):
+                status = "Success"
+            completion = 1 if status == "Success" else 0
             time_left = 0
         else:
             status = "Printing"
@@ -237,6 +271,24 @@ def get_machine_statuses(mfa_display_sheet, job_sheet, store):
 
         row_data = {"Status": status, "Completion": completion, "Time": time_left}
         mfa_display_sheet.set_mfa_display_info(row_number, row_data)
+
+
+def get_device_overview_states():
+    """
+    Read the device list page once and map printer names to their summarized state.
+    """
+    overview = {}
+    os.system("adb shell input keyevent KEYCODE_BACK")
+    cntrl.tap_by_desc("Devices")
+    screen = pr.parse_screen(long_clickable_only=False)
+
+    for entry in screen.keys():
+        match = DEVICE_STATE_PATTERN.fullmatch(entry)
+        if not match:
+            continue
+        overview[match.group("name")] = match.group("state")
+
+    return overview
 
 def get_active_job_for_machine(store, machine):
     """

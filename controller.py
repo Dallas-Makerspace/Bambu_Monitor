@@ -5,6 +5,16 @@ import time
 from lxml import etree
 import parser as pr
 
+DESC_ALIASES = {
+    "Printing History": ("Printing History", "History"),
+    "brand_logo": ("brand_logo", "knife"),
+}
+
+
+def _candidate_descs(desc):
+    return DESC_ALIASES.get(desc, (desc,))
+
+
 def go_to_printing_history():
     os.system("adb shell input keyevent KEYCODE_BACK")
     tap_by_desc("Me")
@@ -24,7 +34,8 @@ def go_to_device_page(machine):
 
     tap_by_desc("brand_logo")
     list_screen = pr.parse_screen(long_clickable_only=False)
-    tap_by_desc(machine)
+    if not tap_by_desc(machine):
+        tap_by_desc(machine, whole_match=False)
     machine_screen = pr.parse_screen(long_clickable_only=False)
     if machine_screen.keys() == list_screen.keys():
         os.system("adb shell input keyevent KEYCODE_BACK")
@@ -32,28 +43,32 @@ def go_to_device_page(machine):
 
 
 def tap_by_desc(desc, whole_match: bool = True):
-    if whole_match:
-        node = find_by_desc(desc)
-    else:
-        node = find_by_desc_including(desc)
-    if node:
-        tap_by_bounds(node)
-    else:
-        return False
+    candidates = _candidate_descs(desc)
+    for candidate in candidates:
+        node = find_by_desc(candidate) if whole_match else find_by_desc_including(candidate)
+        if node:
+            tap_by_bounds(node)
+            return True
+    return False
 
 def find_by_desc(desc): 
-    """ Return the bounds of the first node matching the content description, or False if not found. """ 
+    """Return the bounds of the first node whose normalized label matches desc."""
     os.system("adb shell uiautomator dump /sdcard/view.xml") 
     os.system("adb pull /sdcard/view.xml >/dev/null") 
-    tree = etree.parse("view.xml") 
-    node = tree.xpath(f"//node[@content-desc='{desc}']") 
-    if(node is None): 
-        node = tree.xpath(f"//node[@text='{desc}']") 
-        
-    if not node: 
-        print(f"Element '{desc}' not found") 
-        return False 
-    else: return node[0].get("bounds")
+    tree = etree.parse("view.xml")
+    target = pr.normalize_ui_text(desc)
+
+    for node in tree.iterfind(".//node"):
+        for raw_value in (node.get("content-desc", ""), node.get("text", "")):
+            normalized = pr.normalize_ui_text(raw_value)
+            if not normalized:
+                continue
+
+            if normalized == target or target in normalized.split("\n"):
+                return node.get("bounds")
+
+    print(f"Element '{desc}' not found")
+    return False
 
 def find_by_desc_including(desc):
     """
@@ -62,15 +77,16 @@ def find_by_desc_including(desc):
     os.system("adb shell uiautomator dump /sdcard/view.xml")
     os.system("adb pull /sdcard/view.xml >/dev/null")
     tree = etree.parse("view.xml")
+    target = pr.normalize_ui_text(desc)
 
-    xpath = f"//node[contains(normalize-space(@content-desc), '{desc}')] | //node[contains(normalize-space(@text), '{desc}')]"
-    node = tree.xpath(xpath)
+    for node in tree.iterfind(".//node"):
+        for raw_value in (node.get("content-desc", ""), node.get("text", "")):
+            normalized = pr.normalize_ui_text(raw_value)
+            if normalized and target in normalized:
+                return node.get("bounds")
 
-    if not node:
-        print(f"Element '{desc}' not found")
-        return False
-    else:
-        return node[0].get("bounds")
+    print(f"Element '{desc}' not found")
+    return False
 
 
 def tap_by_bounds(bounds):

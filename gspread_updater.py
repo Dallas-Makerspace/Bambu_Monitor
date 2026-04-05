@@ -58,6 +58,8 @@ class SheetClient:
         """
         ws = self._connect()
         i, row = self.find_job_row(job.name, job.date)
+        if i > ws.row_count:
+            ws.add_rows(i - ws.row_count)
         values = self.map_job_to_row(job, row)
         ws.update(f"A{i}:H{i}", [values])
 
@@ -81,7 +83,7 @@ class SheetClient:
 
     def get_oldest_in_progress_job(self) -> Optional[PrintJob]:
         """
-        Returns the oldest PrintJob that is still in progress (status = 'Printing').
+        Returns the oldest PrintJob that is still in progress.
         """
         ws = self._connect()
         rows = ws.get_all_values()
@@ -93,7 +95,7 @@ class SheetClient:
         jobs = [
             self.row_to_printjob(r)
             for r in rows
-            if len(r) >= 2 and r[1].strip().lower() == "printing"
+            if len(r) >= 2 and r[1].strip().lower() in ("printing", "printing paused")
         ]
 
         if not jobs:
