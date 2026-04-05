@@ -261,7 +261,7 @@ def get_machine_statuses(mfa_display_sheet, job_sheet, store):
                 status = "Printing"
             if next((x for x in screen.keys() if re.fullmatch(r'Success', x)), None):
                 status = "Success"
-            completion = 1 if status == "Success" else 0
+            completion = 1 if status in ("Success", "Idle") else 0
             time_left = 0
         else:
             status = "Printing"
